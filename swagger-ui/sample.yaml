@@ -1,0 +1,23 @@
+openapi: 3.0.3
+info:
+  title: SwaggerTest1 Sample API
+  description: A tiny example API to verify Swagger UI is loading YAML correctly.
+  version: "1.0.0"
+servers:
+  - url: https://example.com/api
+paths:
+  /ping:
+    get:
+      summary: Ping
+      description: Returns a simple pong response.
+      responses:
+        '200':
+          description: pong
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "pong"
