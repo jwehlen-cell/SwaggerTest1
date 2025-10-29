@@ -36,32 +36,57 @@
 
       function resolveSpecUrl(raw) {
         if (!raw) return null;
-        if (/^https?:\/\/i.test(raw)) return raw;
-        // treat as repo-relative: allow with or without leading slash, or relative to swagger-ui/
+        if (/^https?:\/\//i.test(raw)) return raw;
+        // treat as repo-relative: allow with or without leading slash
         raw = raw.replace(/^\/+/, '');
-        // prefer files under swagger-ui/ folder by default
-        return 'https://raw.githubusercontent.com/' + repoOwner + '/' + repoName + '/' + branch + '/swagger-ui/' + raw;
+        // Two-location lookup: try repo root first, then swagger-ui/ folder
+        return [
+          'https://raw.githubusercontent.com/' + repoOwner + '/' + repoName + '/' + branch + '/' + raw,
+          'https://raw.githubusercontent.com/' + repoOwner + '/' + repoName + '/' + branch + '/swagger-ui/' + raw
+        ];
+      }
+
+      // Try to load spec from URLs with fallback
+      async function tryLoadSpec(urlsOrString) {
+        if (typeof urlsOrString === 'string') {
+          return urlsOrString; // absolute URL, use directly
+        }
+        // Try each URL in sequence
+        for (let url of urlsOrString) {
+          try {
+            const response = await fetch(url, { method: 'HEAD' });
+            if (response.ok) {
+              return url;
+            }
+          } catch (e) {
+            // continue to next URL
+          }
+        }
+        // If all fail, return first URL (let Swagger UI show the error)
+        return urlsOrString[0];
       }
 
       const params = new URLSearchParams(window.location.search);
-      let spec = params.get('url') || params.get('spec') || 'sample.yaml';
+      let spec = params.get('url') || params.get('spec') || 'Swagger2.yaml';
       const resolved = resolveSpecUrl(spec);
 
       // Populate input box with the original value (not resolved raw URL)
       document.getElementById('specInput').value = spec;
 
-      const ui = SwaggerUIBundle({
-        url: resolved,
-        dom_id: '#swagger-ui',
-        deepLinking: true,
-        presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
-        layout: "StandaloneLayout",
+      // Initialize Swagger UI with the resolved URL
+      tryLoadSpec(resolved).then(function(url) {
+        const ui = SwaggerUIBundle({
+          url: url,
+          dom_id: '#swagger-ui',
+          deepLinking: true,
+          presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+          layout: "StandaloneLayout",
+        });
       });
 
       document.getElementById('loadBtn').addEventListener('click', function () {
         const v = document.getElementById('specInput').value.trim();
         if (!v) return;
-        const newUrl = resolveSpecUrl(v);
         // reload by setting location.search which will also allow bookmarking
         const q = new URLSearchParams({ url: v }).toString();
         location.search = q;
