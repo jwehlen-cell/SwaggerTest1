@@ -11,12 +11,16 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 
 // Serve Swagger UI static files from node_modules
+// Note: swagger-ui-dist is a public distribution package designed to be served to browsers
 app.use('/swagger-ui', express.static(path.join(__dirname, 'node_modules/swagger-ui-dist')));
 
 // Serve OpenAPI files
 app.use('/openapi', express.static(path.join(__dirname, 'openapi')));
 
 // Serve index.html for the root route
+// NOTE: For production, consider adding rate limiting to prevent DoS attacks:
+// const rateLimit = require('express-rate-limit');
+// app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
