@@ -5,14 +5,11 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Enable CORS for all routes
+// Enable CORS for all routes (for development - configure allowed origins for production)
 app.use(cors());
 
 // Serve Swagger UI static files from node_modules
 app.use('/swagger-ui', express.static(path.join(__dirname, 'node_modules/swagger-ui-dist')));
-
-// Serve static files from the root directory
-app.use(express.static(__dirname));
 
 // Serve OpenAPI files
 app.use('/openapi', express.static(path.join(__dirname, 'openapi')));
