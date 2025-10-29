@@ -1,0 +1,317 @@
+openapi: 3.0.3
+info:
+  title: GMS API Specification
+  description: Consolidated API specification for GMS domains including Common, Event, Interval, Signal Detection, Station Definition, and Waveform.
+  version: 1.0.0
+
+paths:
+  /event/query/events-outside-range-signal-detections-inside-range:
+    post:
+      summary: Find Events outside a time range that are associated to SignalDetections inside the time range
+      description: This operation returns Event objects that have a preferredEventHypothesisByStage EventHypothesis occurring outside the provided time range that is associated to a SignalDetectionHypothesis that occurs inside the time range.
+      parameters:
+        - in: header
+          name: time-format
+          required: false
+          schema:
+            $ref: '#/components/schemas/TimeFormat'
+          example: ISO
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventsOutsideRangeWithSignalDetectionsInsideRangeRequest'
+            example:
+              stageIds: ["stage1", "stage2"]
+              stations: 
+                - name: "StationA"
+                  effectiveAt: "2025-10-01T00:00:00Z"
+                  location:
+                    latitudeDegrees: 34.05
+                    longitudeDegrees: -118.25
+                    depthKm: 0.0
+                  channels:
+                    - name: "Channel1"
+                      effectiveAt: "2025-10-01T00:00:00Z"
+                      location:
+                        latitudeDegrees: 34.05
+                        longitudeDegrees: -118.25
+                        depthKm: 0.0
+                    - name: "Channel2"
+                      effectiveAt: "2025-10-01T00:00:00Z"
+                      location:
+                        latitudeDegrees: 34.06
+                        longitudeDegrees: -118.26
+                        depthKm: 0.0
+                - name: "StationB"
+                  effectiveAt: "2025-10-01T00:00:00Z"
+                  location:
+                    latitudeDegrees: 40.71
+                    longitudeDegrees: -74.01
+                    depthKm: 0.0
+                  channels:
+                    - name: "Channel3"
+                      effectiveAt: "2025-10-01T00:00:00Z"
+                      location:
+                        latitudeDegrees: 40.71
+                        longitudeDegrees: -74.01
+                        depthKm: 0.0
+      responses:
+        '200':
+          description: A list of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+              example:
+                - id: "event1"
+                  monitoringOrganization: "OrgA"
+                  eventHypotheses:
+                    - id: "hypothesis1"
+                      monitoringOrganization: "OrgA"
+                - id: "event2"
+                  monitoringOrganization: "OrgB"
+                  eventHypotheses:
+                    - id: "hypothesis2"
+                      monitoringOrganization: "OrgB"
+
+  /event/query/events:
+    get:
+      summary: Retrieve all events
+      description: This operation retrieves all events stored in the system.
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            description: The maximum number of events to retrieve.
+            example: 10
+        - in: query
+          name: offset
+          required: false
+          schema:
+            type: integer
+            description: The starting point for pagination.
+            example: 0
+      responses:
+        '200':
+          description: A list of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+              example:
+                - id: "event1"
+                  monitoringOrganization: "OrgA"
+                  eventHypotheses:
+                    - id: "hypothesis1"
+                      monitoringOrganization: "OrgA"
+                - id: "event2"
+                  monitoringOrganization: "OrgB"
+                  eventHypotheses:
+                    - id: "hypothesis2"
+                      monitoringOrganization: "OrgB"
+
+  /station-definition/query/stations:
+    get:
+      summary: Retrieve all stations
+      description: This operation retrieves all stations stored in the system.
+      parameters:
+        - in: query
+          name: effectiveAt
+          required: false
+          schema:
+            type: string
+            format: date-time
+            description: The effective date-time for filtering stations.
+            example: "2025-10-01T00:00:00Z"
+      responses:
+        '200':
+          description: A list of stations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Station'
+              example:
+                - name: "StationA"
+                  effectiveAt: "2025-10-01T00:00:00Z"
+                  location:
+                    latitudeDegrees: 34.05
+                    longitudeDegrees: -118.25
+                    depthKm: 0.0
+                  channels:
+                    - name: "Channel1"
+                      effectiveAt: "2025-10-01T00:00:00Z"
+                      location:
+                        latitudeDegrees: 34.05
+                        longitudeDegrees: -118.25
+                        depthKm: 0.0
+                    - name: "Channel2"
+                      effectiveAt: "2025-10-01T00:00:00Z"
+                      location:
+                        latitudeDegrees: 34.06
+                        longitudeDegrees: -118.26
+                        depthKm: 0.0
+                - name: "StationB"
+                  effectiveAt: "2025-10-01T00:00:00Z"
+                  location:
+                    latitudeDegrees: 40.71
+                    longitudeDegrees: -74.01
+                    depthKm: 0.0
+                  channels:
+                    - name: "Channel3"
+                      effectiveAt: "2025-10-01T00:00:00Z"
+                      location:
+                        latitudeDegrees: 40.71
+                        longitudeDegrees: -74.01
+                        depthKm: 0.0
+
+components:
+  schemas:
+    TimeFormat:
+      type: string
+      enum:
+        - EPOCH
+        - ISO
+      description: >
+        Specifies the format of date and time values used in request and response objects.
+        - `EPOCH`: Represents the time as the number of seconds since January 1, 1970 (Unix timestamp).
+          Example: `1698787200` (equivalent to "2025-10-01T00:00:00Z").
+        - `ISO`: Represents the time in ISO 8601 format, which is a widely used standard for date and time representation.
+          Example: `2025-10-01T00:00:00Z`.
+      example: ISO
+      default: ISO
+
+    EventsOutsideRangeWithSignalDetectionsInsideRangeRequest:
+      type: object
+      required:
+        - stageIds
+        - stations
+        - signalDetectionStartTime
+        - signalDetectionEndTime
+      properties:
+        stageIds:
+          type: array
+          items:
+            type: string
+        stations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Station'
+          minItems: 1
+        signalDetectionStartTime:
+          type: string
+          format: date-time
+        signalDetectionEndTime:
+          type: string
+          format: date-time
+
+    Station:
+      type: object
+      required:
+        - name
+        - effectiveAt
+        - location
+        - channels
+      properties:
+        name:
+          type: string
+          description: The name of the station.
+          example: "StationA"
+        effectiveAt:
+          type: string
+          format: date-time
+          description: The time at which the station becomes effective.
+          example: "2025-10-01T00:00:00Z"
+        location:
+          $ref: '#/components/schemas/Location'
+          description: The geographic location of the station.
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/Channel'
+          description: A list of channels associated with the station.
+          example:
+            - name: "Channel1"
+              effectiveAt: "2025-10-01T00:00:00Z"
+              location:
+                latitudeDegrees: 34.05
+                longitudeDegrees: -118.25
+                depthKm: 0.0
+            - name: "Channel2"
+              effectiveAt: "2025-10-01T00:00:00Z"
+              location:
+                latitudeDegrees: 34.06
+                longitudeDegrees: -118.26
+                depthKm: 0.0
+
+    Location:
+      type: object
+      required:
+        - latitudeDegrees
+        - longitudeDegrees
+        - depthKm
+      properties:
+        latitudeDegrees:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+          description: Latitude of the location in degrees.
+          example: 34.05
+        longitudeDegrees:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+          description: Longitude of the location in degrees.
+          example: -118.25
+        depthKm:
+          type: number
+          format: double
+          description: Depth of the location in kilometers.
+          example: 0.0
+
+    Channel:
+      type: object
+      required:
+        - name
+        - effectiveAt
+        - location
+      properties:
+        name:
+          type: string
+          description: The name of the channel.
+          example: "Channel1"
+        effectiveAt:
+          type: string
+          format: date-time
+          description: The time at which the channel becomes effective.
+          example: "2025-10-01T00:00:00Z"
+        location:
+          $ref: '#/components/schemas/Location'
+          description: The geographic location of the channel.
+
+    Event:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          format: uuid
+        monitoringOrganization:
+          type: string
+        eventHypotheses:
+          type: array
+          items:
+            type: object
+            
