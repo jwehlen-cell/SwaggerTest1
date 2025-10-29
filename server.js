@@ -5,7 +5,9 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Enable CORS for all routes (for development - configure allowed origins for production)
+// Enable CORS for all routes
+// NOTE: For development only. In production, configure with specific allowed origins:
+// app.use(cors({ origin: ['https://yourdomain.com', 'https://api.yourdomain.com'] }));
 app.use(cors());
 
 // Serve Swagger UI static files from node_modules
