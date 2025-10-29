@@ -18,7 +18,7 @@
   <header>
     <strong>Swagger UI</strong>
     <div style="display:flex;flex:1;gap:8px;align-items:center;">
-      <input id="specInput" type="text" placeholder="Enter path or raw URL (e.g. my-api.yaml or https://raw.githubusercontent.com/...)">
+      <input id="specInput" type="text" placeholder="Enter path or raw URL (e.g. Swagger2.yaml or https://raw.githubusercontent.com/...)">
       <button id="loadBtn">Load</button>
       <span class="hint">Tip: use ?url=path/to/file.yaml to open directly</span>
     </div>
@@ -30,42 +30,86 @@
   <script src="https://unpkg.com/swagger-ui-dist@4/swagger-ui-standalone-preset.js"></script>
   <script>
     (function () {
+      // Easy to update repository constants
       const repoOwner = 'jwehlen-cell';
       const repoName = 'SwaggerTest1';
-      const branch = 'add-swagger-ui'; // branch where these files will live
+      const branch = 'add-swagger-ui'; // keep this so it's easy to change later
 
-      function resolveSpecUrl(raw) {
-        if (!raw) return null;
-        if (/^https?:\/\/i.test(raw)) return raw;
-        // treat as repo-relative: allow with or without leading slash, or relative to swagger-ui/
-        raw = raw.replace(/^\/+/, '');
-        // prefer files under swagger-ui/ folder by default
-        return 'https://raw.githubusercontent.com/' + repoOwner + '/' + repoName + '/' + branch + '/swagger-ui/' + raw;
+      // Helper to determine if a string is an absolute URL
+      function isAbsoluteUrl(u) {
+        return /^https?:\/\//i.test(u);
       }
 
-      const params = new URLSearchParams(window.location.search);
-      let spec = params.get('url') || params.get('spec') || 'sample.yaml';
-      const resolved = resolveSpecUrl(spec);
+      // Given a non-absolute filename, build the raw.githubusercontent URLs to try:
+      // 1) repo root: https://raw.githubusercontent.com/<owner>/<repo>/<branch>/<file>
+      // 2) swagger-ui folder: https://raw.githubusercontent.com/<owner>/<repo>/<branch>/swagger-ui/<file>
+      function candidateUrlsForFilename(filename) {
+        const f = filename.replace(/^\/+/, '');
+        const root = `https://raw.githubusercontent.com/${repoOwner}/${repoName}/${branch}/${f}`;
+        const uiFolder = `https://raw.githubusercontent.com/${repoOwner}/${repoName}/${branch}/swagger-ui/${f}`;
+        return [root, uiFolder];
+      }
 
-      // Populate input box with the original value (not resolved raw URL)
-      document.getElementById('specInput').value = spec;
+      // Probe candidates in order and return the first URL that fetch() says ok.
+      // If none ok, return the last candidate (uiFolder) as a fallback (preserves original behavior).
+      async function resolveNonAbsoluteSpecUrl(filename) {
+        const candidates = candidateUrlsForFilename(filename);
+        for (let i = 0; i < candidates.length; i++) {
+          try {
+            const resp = await fetch(candidates[i], { method: 'GET' });
+            if (resp && resp.ok) return candidates[i];
+          } catch (err) {
+            // network/CORS issues may throw — ignore and continue to next candidate
+          }
+        }
+        // fallback to uiFolder even if not OK (keeps previous behavior)
+        return candidates[candidates.length - 1];
+      }
 
-      const ui = SwaggerUIBundle({
-        url: resolved,
-        dom_id: '#swagger-ui',
-        deepLinking: true,
-        presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
-        layout: "StandaloneLayout",
-      });
+      // Main initializer - finds the final spec URL (possibly performing fetch probes),
+      // then initializes SwaggerUIBundle with that URL.
+      async function init() {
+        const params = new URLSearchParams(window.location.search);
+        // Default to Swagger2.yaml if no parameter passed
+        let specParam = params.get('url') || params.get('spec') || 'Swagger2.yaml';
 
-      document.getElementById('loadBtn').addEventListener('click', function () {
-        const v = document.getElementById('specInput').value.trim();
-        if (!v) return;
-        const newUrl = resolveSpecUrl(v);
-        // reload by setting location.search which will also allow bookmarking
-        const q = new URLSearchParams({ url: v }).toString();
-        location.search = q;
-      });
+        // Populate input box with the original (unresolved) value
+        document.getElementById('specInput').value = specParam;
+
+        let finalUrl = null;
+        if (!specParam) {
+          // If somehow empty, fall back to Swagger2.yaml
+          specParam = 'Swagger2.yaml';
+        }
+
+        if (isAbsoluteUrl(specParam)) {
+          finalUrl = specParam;
+        } else {
+          // Try to resolve in order: repo root, then swagger-ui/ folder
+          finalUrl = await resolveNonAbsoluteSpecUrl(specParam);
+        }
+
+        // Initialize Swagger UI with the resolved URL (may still 404 when opened,
+        // but this is the same behavior as before).
+        const ui = SwaggerUIBundle({
+          url: finalUrl,
+          dom_id: '#swagger-ui',
+          deepLinking: true,
+          presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+          layout: "StandaloneLayout",
+        });
+
+        // Load button behavior: set query param to the raw input (not the resolved URL)
+        document.getElementById('loadBtn').addEventListener('click', function () {
+          const v = document.getElementById('specInput').value.trim();
+          if (!v) return;
+          const q = new URLSearchParams({ url: v }).toString();
+          location.search = q;
+        });
+      }
+
+      // Start
+      init();
     })();
   </script>
 </body>
