@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Swagger UI — SwaggerTest1</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@4/swagger-ui.css">
+  <style>
+    body { margin:0; padding:0; }
+    header { padding:8px 12px; background:#323232; color:#fff; display:flex; gap:12px; align-items:center; }
+    header input[type="text"] { flex:1; padding:6px 8px; border-radius:4px; border:1px solid #ccc; }
+    header button { padding:6px 10px; border-radius:4px; border:0; background:#2b90d9; color:#fff; cursor:pointer; }
+    #swagger-ui { height: calc(100vh - 52px); }
+    .hint { font-size:13px; opacity:0.9; margin-left:8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>Swagger UI</strong>
+    <div style="display:flex;flex:1;gap:8px;align-items:center;">
+      <input id="specInput" type="text" placeholder="Enter path or raw URL (e.g. my-api.yaml or https://raw.githubusercontent.com/...)">
+      <button id="loadBtn">Load</button>
+      <span class="hint">Tip: use ?url=path/to/file.yaml to open directly</span>
+    </div>
+  </header>
+
+  <div id="swagger-ui"></div>
+
+  <script src="https://unpkg.com/swagger-ui-dist@4/swagger-ui-bundle.js"></script>
+  <script src="https://unpkg.com/swagger-ui-dist@4/swagger-ui-standalone-preset.js"></script>
+  <script>
+    (function () {
+      const repoOwner = 'jwehlen-cell';
+      const repoName = 'SwaggerTest1';
+      const branch = 'add-swagger-ui'; // branch where these files will live
+
+      function resolveSpecUrl(raw) {
+        if (!raw) return null;
+        if (/^https?:\/\/i.test(raw)) return raw;
+        // treat as repo-relative: allow with or without leading slash, or relative to swagger-ui/
+        raw = raw.replace(/^\/+/, '');
+        // prefer files under swagger-ui/ folder by default
+        return 'https://raw.githubusercontent.com/' + repoOwner + '/' + repoName + '/' + branch + '/swagger-ui/' + raw;
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      let spec = params.get('url') || params.get('spec') || 'sample.yaml';
+      const resolved = resolveSpecUrl(spec);
+
+      // Populate input box with the original value (not resolved raw URL)
+      document.getElementById('specInput').value = spec;
+
+      const ui = SwaggerUIBundle({
+        url: resolved,
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+        layout: "StandaloneLayout",
+      });
+
+      document.getElementById('loadBtn').addEventListener('click', function () {
+        const v = document.getElementById('specInput').value.trim();
+        if (!v) return;
+        const newUrl = resolveSpecUrl(v);
+        // reload by setting location.search which will also allow bookmarking
+        const q = new URLSearchParams({ url: v }).toString();
+        location.search = q;
+      });
+    })();
+  </script>
+</body>
+</html>
